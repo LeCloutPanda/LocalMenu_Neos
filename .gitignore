@@ -1,0 +1,12 @@
+*.pdb
+*.xml
+*.dll
+*.dll
+*.config
+*.cache
+*.txt
+*.CopyComplete
+.vs/LocalMenu/FileContentIndex/1d93556e-b024-4e1e-a484-332a0ac6f524.vsidx
+.vs/LocalMenu/FileContentIndex/866204d0-f6e9-4bac-9254-c27d4b7a7344.vsidx
+.vs/LocalMenu/FileContentIndex/read.lock
+.vs/LocalMenu/v17/.suo
