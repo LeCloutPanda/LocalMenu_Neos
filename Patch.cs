@@ -7,9 +7,9 @@ namespace LocalMenu
 {
     public class Patch : NeosMod
     {
-        public override string Name => "LocalMenu";
+        public override string Name => "Local-Menu";
         public override string Author => "LeCloutPanda";
-        public override string Version => "1.0.0";
+        public override string Version => "1.0.1";
 
         public static ModConfiguration config;
 
@@ -31,21 +31,23 @@ namespace LocalMenu
         class PatchContextMenu
         {
             [HarmonyPostfix]
-            [HarmonyPatch("OnAttach")]
+            [HarmonyPatch("OnAwake")]
             static void Postfix(ContextMenu __instance)
             {
-                if (!config.GetValue(CONTEXT_MENU_VISIBLE))
-                    return;
-
-                Slot slot = __instance.Slot;
-
-                if (slot.ActiveUser == slot.LocalUser)
+                __instance.RunInUpdates(3, () =>
                 {
+                    if (!config.GetValue(CONTEXT_MENU_VISIBLE))
+                        return;
+
+                    if (__instance.Slot.ActiveUserRoot.ActiveUser != __instance.LocalUser)
+                        return;
+
+                    Slot slot = __instance.Slot;
                     ValueUserOverride<bool> value = slot.AttachComponent<ValueUserOverride<bool>>();
                     value.Target.Value = slot.ActiveSelf_Field.ReferenceID;
                     value.Default.Value = false;
                     value.SetOverride(__instance.LocalUser, true);
-                }
+                });
             }
         }
 
@@ -53,21 +55,23 @@ namespace LocalMenu
         class PatchInteractionLaser
         {
             [HarmonyPostfix]
-            [HarmonyPatch("OnAttach")]
+            [HarmonyPatch("OnAwake")]
             static void Postfix(InteractionLaser __instance)
             {
-                if (!config.GetValue(INTERACTION_LASER_VISIBLE))
-                    return;
-
-                Slot slot = __instance.Slot;
-
-                if (slot.ActiveUser == slot.LocalUser)
+                __instance.RunInUpdates(3, () =>
                 {
+                    if (!config.GetValue(INTERACTION_LASER_VISIBLE))
+                        return;
+
+                    if (__instance.Slot.ActiveUserRoot.ActiveUser != __instance.LocalUser)
+                        return;
+
+                    Slot slot = __instance.Slot;
                     ValueUserOverride<bool> value = slot.AttachComponent<ValueUserOverride<bool>>();
                     value.Target.Value = slot.ActiveSelf_Field.ReferenceID;
                     value.Default.Value = false;
                     value.SetOverride(__instance.LocalUser, true);
-                }
+                });
             }
         }
     }
