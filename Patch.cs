@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Security.Policy;
 using FrooxEngine;
 using HarmonyLib;
 using NeosModLoader;
@@ -9,14 +10,18 @@ namespace LocalMenu
     {
         public override string Name => "Local-Menu";
         public override string Author => "LeCloutPanda";
-        public override string Version => "1.0.1";
+        public override string Version => "1.0.2";
 
         public static ModConfiguration config;
 
         [AutoRegisterConfigKey]
-        private static ModConfigurationKey<bool> CONTEXT_MENU_VISIBLE = new ModConfigurationKey<bool>("Use ValueUserOverride on Context Menu", "", () => true);
+        private static ModConfigurationKey<bool> CONTEXT_MENU_VISIBLE = new ModConfigurationKey<bool>("Allow others to see Context menu", "", () => true);
         [AutoRegisterConfigKey]
-        private static ModConfigurationKey<bool> INTERACTION_LASER_VISIBLE = new ModConfigurationKey<bool>("Use ValueUserOverride on Interaction Laser", "", () => true);
+        private static ModConfigurationKey<bool> INTERACTION_LASER_VISIBLE = new ModConfigurationKey<bool>("Allow others to see Interaction Laser", "", () => true);
+
+        static ValueUserOverride<bool> contextMenuVUO;
+        static ValueUserOverride<bool> interactionLaserVUOL;
+        static ValueUserOverride<bool> interactionLaserVUOR;
 
         public override void OnEngineInit()
         {
@@ -25,6 +30,15 @@ namespace LocalMenu
 
             Harmony harmony = new Harmony($"dev.{Author}.{Name}");
             harmony.PatchAll();
+
+            config.OnThisConfigurationChanged += UpdateValues;
+        }
+
+        private void UpdateValues(ConfigurationChangedEvent @event)
+        {
+            contextMenuVUO.Default.Value = config.GetValue(CONTEXT_MENU_VISIBLE);
+            interactionLaserVUOL.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
+            interactionLaserVUOR.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
         }
 
         [HarmonyPatch(typeof(ContextMenu))]
@@ -36,17 +50,14 @@ namespace LocalMenu
             {
                 __instance.RunInUpdates(3, () =>
                 {
-                    if (!config.GetValue(CONTEXT_MENU_VISIBLE))
-                        return;
-
                     if (__instance.Slot.ActiveUserRoot.ActiveUser != __instance.LocalUser)
                         return;
 
                     Slot slot = __instance.Slot;
-                    ValueUserOverride<bool> value = slot.AttachComponent<ValueUserOverride<bool>>();
-                    value.Target.Value = slot.ActiveSelf_Field.ReferenceID;
-                    value.Default.Value = false;
-                    value.SetOverride(__instance.LocalUser, true);
+                    contextMenuVUO = slot.AttachComponent<ValueUserOverride<bool>>();
+                    contextMenuVUO.Target.Value = slot.ActiveSelf_Field.ReferenceID;
+                    contextMenuVUO.Default.Value = config.GetValue(CONTEXT_MENU_VISIBLE);
+                    contextMenuVUO.SetOverride(__instance.LocalUser, true);
                 });
             }
         }
@@ -60,17 +71,19 @@ namespace LocalMenu
             {
                 __instance.RunInUpdates(3, () =>
                 {
-                    if (!config.GetValue(INTERACTION_LASER_VISIBLE))
-                        return;
-
                     if (__instance.Slot.ActiveUserRoot.ActiveUser != __instance.LocalUser)
                         return;
 
                     Slot slot = __instance.Slot;
-                    ValueUserOverride<bool> value = slot.AttachComponent<ValueUserOverride<bool>>();
-                    value.Target.Value = slot.ActiveSelf_Field.ReferenceID;
-                    value.Default.Value = false;
-                    value.SetOverride(__instance.LocalUser, true);
+                    ValueUserOverride<bool> current = slot.AttachComponent<ValueUserOverride<bool>>();
+                    current.Target.Value = slot.ActiveSelf_Field.ReferenceID;
+                    current.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
+                    current.SetOverride(__instance.LocalUser, true);
+
+                    if (__instance.Side == Chirality.Left)
+                        interactionLaserVUOL = current; 
+                    else if (__instance.Side == Chirality.Right)
+                        interactionLaserVUOR = current;
                 });
             }
         }
