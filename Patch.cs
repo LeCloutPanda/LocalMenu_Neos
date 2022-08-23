@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Security.Policy;
 using FrooxEngine;
 using HarmonyLib;
@@ -8,9 +9,9 @@ namespace LocalMenu
 {
     public class Patch : NeosMod
     {
-        public override string Name => "Local-Menu";
+        public override string Name => "LocalMenu";
         public override string Author => "LeCloutPanda";
-        public override string Version => "1.0.2";
+        public override string Version => "1.0.3";
 
         public static ModConfiguration config;
 
@@ -19,9 +20,9 @@ namespace LocalMenu
         [AutoRegisterConfigKey]
         private static ModConfigurationKey<bool> INTERACTION_LASER_VISIBLE = new ModConfigurationKey<bool>("Allow others to see Interaction Laser", "", () => true);
 
-        static ValueUserOverride<bool> contextMenuVUO;
-        static ValueUserOverride<bool> interactionLaserVUOL;
-        static ValueUserOverride<bool> interactionLaserVUOR;
+        static List<ValueUserOverride<bool>> contextMenuVUOS = new List<ValueUserOverride<bool>>();
+        static List<ValueUserOverride<bool>> interactionLaserVUOS = new List<ValueUserOverride<bool>>();
+
 
         public override void OnEngineInit()
         {
@@ -36,11 +37,26 @@ namespace LocalMenu
 
         private void UpdateValues(ConfigurationChangedEvent @event)
         {
-            contextMenuVUO.Default.Value = config.GetValue(CONTEXT_MENU_VISIBLE);
-            interactionLaserVUOL.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
-            interactionLaserVUOR.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
-        }
+            for (int i = 0; i < contextMenuVUOS.Count; i++)
+            {
+                var menu = contextMenuVUOS[i];
 
+                if (menu != null)
+                {
+                    menu.Default.Value = config.GetValue(CONTEXT_MENU_VISIBLE);
+                }
+            }
+
+            for (int i = 0; i < interactionLaserVUOS.Count; i++)
+            {
+                var menu = interactionLaserVUOS[i];
+
+                if (menu != null)
+                {
+                    menu.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
+                }
+            }
+        }
         [HarmonyPatch(typeof(ContextMenu))]
         class PatchContextMenu
         {
@@ -54,10 +70,11 @@ namespace LocalMenu
                         return;
 
                     Slot slot = __instance.Slot;
-                    contextMenuVUO = slot.AttachComponent<ValueUserOverride<bool>>();
-                    contextMenuVUO.Target.Value = slot.ActiveSelf_Field.ReferenceID;
-                    contextMenuVUO.Default.Value = config.GetValue(CONTEXT_MENU_VISIBLE);
-                    contextMenuVUO.SetOverride(__instance.LocalUser, true);
+                    var temp = slot.AttachComponent<ValueUserOverride<bool>>();
+                    contextMenuVUOS.Add(temp);
+                    temp.Target.Value = slot.ActiveSelf_Field.ReferenceID;
+                    temp.Default.Value = config.GetValue(CONTEXT_MENU_VISIBLE);
+                    temp.SetOverride(__instance.LocalUser, true);
                 });
             }
         }
@@ -75,15 +92,11 @@ namespace LocalMenu
                         return;
 
                     Slot slot = __instance.Slot;
-                    ValueUserOverride<bool> current = slot.AttachComponent<ValueUserOverride<bool>>();
-                    current.Target.Value = slot.ActiveSelf_Field.ReferenceID;
-                    current.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
-                    current.SetOverride(__instance.LocalUser, true);
-
-                    if (__instance.Side == Chirality.Left)
-                        interactionLaserVUOL = current; 
-                    else if (__instance.Side == Chirality.Right)
-                        interactionLaserVUOR = current;
+                    var temp = slot.AttachComponent<ValueUserOverride<bool>>();
+                    interactionLaserVUOS.Add(temp);
+                    temp.Target.Value = slot.ActiveSelf_Field.ReferenceID;
+                    temp.Default.Value = config.GetValue(INTERACTION_LASER_VISIBLE);
+                    temp.SetOverride(__instance.LocalUser, true);
                 });
             }
         }
